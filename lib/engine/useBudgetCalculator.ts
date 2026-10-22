@@ -30,27 +30,47 @@ export function recalculateCostsFromPercentages(
   items: BudgetItem[],
   totalBudget: number
 ): BudgetItem[] {
-  if (totalBudget <= 0) {
+  const safeBudget = Number(totalBudget);
+  if (isNaN(safeBudget) || safeBudget <= 0) {
     return items.map((item) => ({ ...item, estimatedCost: 0 }));
   }
-  return items.map((item) => ({
-    ...item,
-    estimatedCost: Math.round(((Number(item.percentage) || 0) / 100) * totalBudget),
-  }));
+  return items.map((item) => {
+    const pct = Number(item.percentage) || 0;
+    return {
+      ...item,
+      percentage: pct,
+      estimatedCost: Math.round((pct / 100) * safeBudget),
+    };
+  });
 }
 
 export function normalizePercentages(items: BudgetItem[]): BudgetItem[] {
+  if (items.length === 0) return items;
   const currentTotal = calculatePercentageTotal(items);
-  if (currentTotal === 0 || items.length === 0) return items;
+
+  // If current total is 0 (all items set to 0%), distribute 100% evenly among categories
+  if (currentTotal === 0 || isNaN(currentTotal)) {
+    const baseSplit = Math.floor((100 / items.length) * 10) / 10;
+    let running = 0;
+    return items.map((item, index) => {
+      if (index === items.length - 1) {
+        const lastPct = Math.max(0, Math.round((100 - running) * 10) / 10);
+        return { ...item, percentage: lastPct };
+      }
+      running += baseSplit;
+      return { ...item, percentage: baseSplit };
+    });
+  }
 
   let accumulated = 0;
   return items.map((item, index) => {
     if (index === items.length - 1) {
       // Avoid rounding errors by assigning remainder to the last item
-      const lastPct = Math.max(0, 100 - accumulated);
-      return { ...item, percentage: Math.round(lastPct * 10) / 10 };
+      const lastPct = Math.max(0, Math.round((100 - accumulated) * 10) / 10);
+      return { ...item, percentage: lastPct };
     }
-    const normalized = Math.round(((item.percentage / currentTotal) * 100) * 10) / 10;
+    const safePct = Number(item.percentage) || 0;
+    const normalized = Math.round(((safePct / currentTotal) * 100) * 10) / 10;
     accumulated += normalized;
     return { ...item, percentage: normalized };
   });
@@ -77,7 +97,7 @@ export function useBudgetCalculator(
 
   // Update total event budget and recalculate all item dollar costs
   const updateTotalBudget = useCallback((newTotal: number) => {
-    const validTotal = Math.max(0, newTotal);
+    const validTotal = isNaN(newTotal) || newTotal < 0 ? 0 : Math.round(newTotal);
     setTotalBudget(validTotal);
     setItems((prev) => recalculateCostsFromPercentages(prev, validTotal));
   }, []);
@@ -85,11 +105,14 @@ export function useBudgetCalculator(
   // Update a single item's percentage slider
   const updateItemPercentage = useCallback(
     (id: string, newPercentage: number) => {
-      const validPct = Math.max(0, Math.min(100, Math.round(newPercentage * 10) / 10));
+      const validPct = isNaN(newPercentage)
+        ? 0
+        : Math.max(0, Math.min(100, Math.round(newPercentage * 10) / 10));
+      const safeBudget = isNaN(totalBudget) || totalBudget <= 0 ? 0 : totalBudget;
       setItems((prev) =>
         prev.map((item) => {
           if (item.id === id) {
-            const cost = Math.round((validPct / 100) * totalBudget);
+            const cost = Math.round((validPct / 100) * safeBudget);
             return { ...item, percentage: validPct, estimatedCost: cost };
           }
           return item;
@@ -102,13 +125,14 @@ export function useBudgetCalculator(
   // Update a single item's dollar cost directly
   const updateItemCost = useCallback(
     (id: string, newCost: number) => {
-      const validCost = Math.max(0, newCost);
+      const validCost = isNaN(newCost) || newCost < 0 ? 0 : Math.round(newCost);
+      const safeBudget = isNaN(totalBudget) || totalBudget <= 0 ? 0 : totalBudget;
       setItems((prev) =>
         prev.map((item) => {
           if (item.id === id) {
             const pct =
-              totalBudget > 0
-                ? Math.round((validCost / totalBudget) * 1000) / 10
+              safeBudget > 0
+                ? Math.round((validCost / safeBudget) * 1000) / 10
                 : 0;
             return { ...item, estimatedCost: validCost, percentage: pct };
           }
@@ -131,12 +155,18 @@ export function useBudgetCalculator(
 
   // Add a new budget category
   const addCategory = useCallback(
-    (category: string, percentage: number = 5, priority: "Critical" | "Flexible" | "Optional" = "Flexible") => {
+    (
+      category: string,
+      percentage: number = 5,
+      priority: "Critical" | "Flexible" | "Optional" = "Flexible"
+    ) => {
       const id = `custom-${Date.now()}`;
-      const estimatedCost = Math.round((percentage / 100) * totalBudget);
+      const safeBudget = isNaN(totalBudget) || totalBudget <= 0 ? 0 : totalBudget;
+      const safePct = isNaN(percentage) ? 0 : Math.max(0, Math.min(100, percentage));
+      const estimatedCost = Math.round((safePct / 100) * safeBudget);
       setItems((prev) => [
         ...prev,
-        { id, category, percentage, estimatedCost, priority },
+        { id, category, percentage: safePct, estimatedCost, priority },
       ]);
     },
     [totalBudget]
@@ -157,9 +187,10 @@ export function useBudgetCalculator(
 
   // Derived metrics
   const metrics: BudgetMetrics = useMemo(() => {
+    const safeBudget = isNaN(totalBudget) || totalBudget < 0 ? 0 : totalBudget;
     const totalAllocated = calculateAllocatedTotal(items);
     const totalPercentage = Math.round(calculatePercentageTotal(items) * 10) / 10;
-    const remainingBudget = totalBudget - totalAllocated;
+    const remainingBudget = safeBudget - totalAllocated;
     const isOverBudget = remainingBudget < 0;
     const isBalanced = Math.abs(totalPercentage - 100) < 0.5;
 
@@ -168,13 +199,14 @@ export function useBudgetCalculator(
     let optionalTotal = 0;
 
     items.forEach((it) => {
-      if (it.priority === "Critical") criticalTotal += it.estimatedCost;
-      else if (it.priority === "Flexible") flexibleTotal += it.estimatedCost;
-      else optionalTotal += it.estimatedCost;
+      const cost = Number(it.estimatedCost) || 0;
+      if (it.priority === "Critical") criticalTotal += cost;
+      else if (it.priority === "Flexible") flexibleTotal += cost;
+      else optionalTotal += cost;
     });
 
     return {
-      totalBudget,
+      totalBudget: safeBudget,
       totalAllocated,
       remainingBudget,
       totalPercentage,
