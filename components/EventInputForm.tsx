@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useId } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { EventInput, EventInputSchema } from "@/lib/schemas/event";
 import {
-  Calendar,
-  DollarSign,
-  Users,
-  Sparkles,
-  AlertTriangle,
-  Clock,
-  HeartHandshake,
+  AlertCircle,
+  ArrowRight,
   Cake,
-  GlassWater,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  HeartHandshake,
+  MapPin,
   PartyPopper,
-  Info,
+  Sparkles,
+  Users,
+  Wallet,
 } from "lucide-react";
 
 interface EventInputFormProps {
@@ -22,96 +23,93 @@ interface EventInputFormProps {
 }
 
 const VIBE_PRESETS = [
-  "Rustic Barn with Warm Fairy Lights",
-  "Chic Downtown Rooftop & Cocktails",
-  "Sunset Beach BBQ & Acoustic Jam",
-  "Modern Minimalist Studio & Neon",
-  "Vibrant Community Park & Food Trucks",
-  "Intimate Cozy Garden Dinner",
+  "Rustic garden with warm lights",
+  "Chic rooftop dinner",
+  "Sunset beach gathering",
+  "Modern minimalist venue",
+  "Intimate backyard dinner",
 ];
 
-function getLocalDateString(daysOffset: number = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + daysOffset);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+function getLocalDateString(daysOffset = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysOffset);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function formatEventDate(dateString: string): string {
+  if (!dateString) return "Choose a date";
+  const [year, month, day] = dateString.split("-").map(Number);
+  if (!year || !month || !day) return "Choose a date";
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
 }
 
 export function EventInputForm({ onSubmit, isLoading }: EventInputFormProps) {
   const formId = useId();
-
-  // Hydration guard to eliminate SSR/client timezone and clock mismatches
-  const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [todayStr, setTodayStr] = useState<string>("2026-10-23");
+  const [isMounted, setIsMounted] = useState(false);
+  const [todayStr, setTodayStr] = useState("");
   const [eventType, setEventType] = useState<"Wedding" | "Birthday" | "Community Event" | "Other">("Wedding");
-  const [totalBudget, setTotalBudget] = useState<number>(12000);
-  const [guestCount, setGuestCount] = useState<number>(80);
-  const [eventDate, setEventDate] = useState<string>("2026-11-06");
-  const [locationVibe, setLocationVibe] = useState<string>("Rustic Barn with Warm Fairy Lights");
-  const [specialNotes, setSpecialNotes] = useState<string>("");
+  const [totalBudget, setTotalBudget] = useState(12000);
+  const [guestCount, setGuestCount] = useState(80);
+  const [eventDate, setEventDate] = useState("");
+  const [locationVibe, setLocationVibe] = useState("Rustic garden with warm lights");
+  const [specialNotes, setSpecialNotes] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
-    const today = getLocalDateString(0);
-    setTodayStr(today);
-    setEventDate((prev) => (prev === "2026-11-06" ? getLocalDateString(14) : prev));
+    setTodayStr(getLocalDateString());
+    setEventDate((current) => current || getLocalDateString(14));
   }, []);
 
-  // Compute days remaining safely
-  const calculateDaysRemaining = (targetDateStr: string): number => {
-    if (!targetDateStr) return 0;
+  const calculateDaysRemaining = (targetDateString: string): number => {
+    if (!targetDateString) return 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const [y, m, d] = targetDateStr.split("-").map(Number);
-    if (!y || !m || !d) return 0;
-    const target = new Date(y, m - 1, d);
+    const [year, month, day] = targetDateString.split("-").map(Number);
+    if (!year || !month || !day) return 0;
+    const target = new Date(year, month - 1, day);
     target.setHours(0, 0, 0, 0);
-    const diffTime = target.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   const rawDaysRemaining = isMounted ? calculateDaysRemaining(eventDate) : 14;
   const isPastDate = isMounted && rawDaysRemaining < 0;
   const daysRemaining = Math.max(0, rawDaysRemaining);
-  const isUrgent = daysRemaining < 7 && !isPastDate;
-  const budgetPerGuest = guestCount > 0 ? (totalBudget / guestCount).toFixed(0) : "0";
+  const isUrgent = isMounted && daysRemaining < 7 && !isPastDate;
+  const budgetPerGuest = guestCount > 0 ? Math.round(totalBudget / guestCount) : 0;
 
-  // Quick Demo Loaders for competition judges
-  const loadPreset = (preset: "urgent" | "wedding" | "community") => {
+  const loadPreset = (preset: "urgent" | "wedding") => {
     if (preset === "urgent") {
       setEventType("Birthday");
       setTotalBudget(2500);
       setGuestCount(30);
       setEventDate(getLocalDateString(4));
-      setLocationVibe("Chic Downtown Rooftop & Cocktails");
-      setSpecialNotes("Last-minute milestone 30th birthday. Need urgent bookings, quick DJ, and finger food.");
-    } else if (preset === "wedding") {
+      setLocationVibe("Chic rooftop dinner");
+      setSpecialNotes("Last-minute milestone birthday. Need quick bookings.");
+    } else {
       setEventType("Wedding");
       setTotalBudget(28000);
       setGuestCount(120);
       setEventDate(getLocalDateString(120));
-      setLocationVibe("Rustic Barn with Warm Fairy Lights");
-      setSpecialNotes("Outdoor ceremony, indoor reception. Vegetarian options required for 20 guests.");
-    } else {
-      setEventType("Community Event");
-      setTotalBudget(6500);
-      setGuestCount(200);
-      setEventDate(getLocalDateString(25));
-      setLocationVibe("Vibrant Community Park & Food Trucks");
-      setSpecialNotes("Open-air neighborhood festival with local band performances and craft booths.");
+      setLocationVibe("Rustic garden with warm lights");
+      setSpecialNotes("Outdoor ceremony, indoor reception.");
     }
     setErrorMsg(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setErrorMsg(null);
 
     if (rawDaysRemaining < 0) {
-      setErrorMsg("Please select today or a future date for your event.");
+      setErrorMsg("Choose today or a future date for your event.");
       return;
     }
 
@@ -127,357 +125,195 @@ export function EventInputForm({ onSubmit, isLoading }: EventInputFormProps) {
 
     const parsed = EventInputSchema.safeParse(inputData);
     if (!parsed.success) {
-      const firstIssue = parsed.error.issues[0]?.message || "Please check your input values.";
-      setErrorMsg(firstIssue);
+      setErrorMsg(parsed.error.issues[0]?.message || "Please check your event details.");
       return;
     }
 
     try {
       await onSubmit(parsed.data);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setErrorMsg(err.message);
-      } else {
-        setErrorMsg("Failed to generate plan. Please try again.");
-      }
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : "We couldn't generate the plan. Please try again.");
     }
   };
 
-  return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-brand-600 via-rose-600 to-amber-500 p-6 sm:p-8 text-white">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold tracking-wide uppercase mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-              Autonomous Planning Engine
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Design Your Perfect Celebration
-            </h2>
-            <p className="text-rose-100 text-sm mt-1">
-              Enter your parameters to orchestrate budgets, milestones, and vendor requirements.
-            </p>
-          </div>
+  const eventTypes = [
+    { type: "Wedding" as const, icon: HeartHandshake, title: "Wedding", description: "A day to remember" },
+    { type: "Birthday" as const, icon: Cake, title: "Birthday", description: "Celebrate another year" },
+    { type: "Community Event" as const, icon: Users, title: "Community", description: "Bring people together" },
+    { type: "Other" as const, icon: PartyPopper, title: "Something else", description: "Your kind of gathering" },
+  ];
 
-          {/* Quick Preset Buttons for Evaluator convenience */}
-          <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
-            <span className="text-[11px] font-semibold text-rose-200 uppercase tracking-wider">
-              Quick Scenarios:
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => loadPreset("urgent")}
-                className="text-xs font-semibold bg-white/15 hover:bg-white/30 text-white px-2.5 py-1.5 rounded-lg transition-colors border border-white/20 flex items-center gap-1"
-                title="Loads 4-day tight timeline scenario"
-              >
-                ⚡ Urgent (&lt;7d)
-              </button>
-              <button
-                type="button"
-                onClick={() => loadPreset("wedding")}
-                className="text-xs font-semibold bg-white/15 hover:bg-white/30 text-white px-2.5 py-1.5 rounded-lg transition-colors border border-white/20"
-              >
-                💍 Wedding
-              </button>
-              <button
-                type="button"
-                onClick={() => loadPreset("community")}
-                className="text-xs font-semibold bg-white/15 hover:bg-white/30 text-white px-2.5 py-1.5 rounded-lg transition-colors border border-white/20"
-              >
-                🎪 Community
-              </button>
-            </div>
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#263144] bg-[#111827] shadow-[0_12px_32px_rgba(0,0,0,0.22)]">
+      <div className="flex flex-col gap-4 border-b border-[#263144] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:py-6">
+        <div>
+          <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#ef8299]">
+            <Sparkles className="h-3.5 w-3.5" /> Start your plan
           </div>
+          <h2 className="font-display text-[1.55rem] font-semibold tracking-[-0.035em] text-[#f8fafc] sm:text-[1.75rem]">
+            Tell us about your event
+          </h2>
+          <p className="mt-1.5 text-sm leading-6 text-[#a0aec0]">
+            A few essentials are all we need to get started.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => loadPreset("urgent")} className="secondary-button">
+            <Clock3 className="h-3.5 w-3.5 text-[#ef8299]" />
+            Quick plan · 4 days
+          </button>
+          <button type="button" onClick={() => loadPreset("wedding")} className="secondary-button">
+            <HeartHandshake className="h-3.5 w-3.5 text-[#ef8299]" />
+            Sample wedding
+          </button>
         </div>
       </div>
 
-      {/* Main Form */}
-      <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-        {errorMsg && (
-          <div
-            role="alert"
-            className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-3"
-          >
-            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Validation Error</p>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-7 px-5 py-6 sm:px-7 sm:py-7">
+          {errorMsg && (
+            <div role="alert" className="flex items-start gap-3 rounded-xl border border-[#61313b] bg-[#2c171f] p-3.5 text-sm text-[#f0a0a8]">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>{errorMsg}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Urgent Mode Notification Banner */}
-        {isUrgent && (
-          <div
-            role="status"
-            className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-900 text-sm flex items-start gap-3 shadow-sm"
-          >
-            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-bounce" />
-            <div>
-              <div className="font-bold flex items-center gap-2">
-                <span>⚡ Urgent Mode Triggered ({daysRemaining} days remaining)</span>
-                <span className="bg-amber-200 text-amber-800 text-[10px] uppercase font-black px-2 py-0.5 rounded">
-                  Active Rule
-                </span>
+          {isUrgent && (
+            <div role="status" className="flex items-start gap-3 rounded-xl border border-[#66512d] bg-[#2c2416] p-3.5 text-sm text-[#e8c878]">
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">A short planning window: {daysRemaining} days</p>
+                <p className="mt-1 leading-5 text-[#d6bd83]">The plan will prioritize quick decisions, immediate bookings, and tasks that can realistically be completed in time.</p>
               </div>
-              <p className="text-amber-800/90 text-xs mt-1">
-                Gatherly will automatically eliminate long-lead vendor tasks, bias budget allocations toward immediate booking confirmations, and inject an emergency contingency buffer.
-              </p>
+            </div>
+          )}
+
+          <fieldset className="space-y-3">
+            <legend className="mb-3 text-sm font-bold text-[#e2e8f0]">What are you celebrating?</legend>
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {eventTypes.map(({ type, icon: Icon, title, description }) => {
+                const active = eventType === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setEventType(type)}
+                    className={`group relative min-h-[112px] rounded-xl border p-3.5 text-left transition-colors ${active
+                        ? "border-[#ef8299] bg-[#2b1c2b]"
+                        : "border-[#293348] bg-[#111827] hover:border-[#334057] hover:bg-[#121b2b]"
+                      }`}
+                  >
+                    <span className={`mb-3 flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-[#3b2635] text-[#f09bad]" : "bg-[#1e2739] text-[#94a3b8]"}`}>
+                      <Icon className="h-[17px] w-[17px]" strokeWidth={1.8} />
+                    </span>
+                    <span className="block text-[13px] font-bold leading-5 text-[#e2e8f0]">{title}</span>
+                    <span className="mt-0.5 block text-[10px] leading-4 text-[#94a3b8]">{description}</span>
+                    {active && <CheckCircle2 className="absolute right-3 top-3 h-4 w-4 text-[#ef8299]" />}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor={`${formId}-budget`} className="flex items-center justify-between gap-2 text-[13px] font-bold text-[#e2e8f0]">
+                <span className="inline-flex items-center gap-2"><Wallet className="h-4 w-4 text-[#94a3b8]" /> Total budget (USD)</span>
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-[#94a3b8]">$</span>
+                <input id={`${formId}-budget`} type="number" min="100" step="50" value={totalBudget} onChange={(event) => setTotalBudget(Number(event.target.value))} required className="field-control pl-8 font-semibold tabular-nums" />
+              </div>
+              <p className="text-[11px] text-[#94a3b8]">About ${budgetPerGuest.toLocaleString("en-US")} per guest</p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor={`${formId}-guests`} className="flex items-center gap-2 text-[13px] font-bold text-[#e2e8f0]">
+                <Users className="h-4 w-4 text-[#94a3b8]" /> Guest count
+              </label>
+              <input id={`${formId}-guests`} type="number" min="1" max="100000" value={guestCount} onChange={(event) => setGuestCount(Number(event.target.value))} required className="field-control font-semibold tabular-nums" />
+              <p className="text-[11px] text-[#94a3b8]">An estimate is fine for now.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor={`${formId}-date`} className="flex items-center gap-2 text-[13px] font-bold text-[#e2e8f0]">
+                <CalendarDays className="h-4 w-4 text-[#94a3b8]" /> Event date
+              </label>
+              <input id={`${formId}-date`} type="date" min={todayStr || undefined} value={eventDate} onChange={(event) => { setEventDate(event.target.value); if (errorMsg) setErrorMsg(null); }} required className="field-control" />
+              <p className="text-[11px] text-[#94a3b8]">Choose today or a future date.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor={`${formId}-vibe`} className="flex items-center gap-2 text-[13px] font-bold text-[#e2e8f0]">
+                <MapPin className="h-4 w-4 text-[#94a3b8]" /> Setting and style
+              </label>
+              <input id={`${formId}-vibe`} type="text" value={locationVibe} onChange={(event) => setLocationVibe(event.target.value)} required maxLength={160} placeholder="e.g. rooftop dinner, relaxed garden" className="field-control" list={`${formId}-vibe-presets`} />
+              <datalist id={`${formId}-vibe-presets`}>
+                {VIBE_PRESETS.map((preset) => <option value={preset} key={preset} />)}
+              </datalist>
+              <p className="text-[11px] text-[#94a3b8]">Describe the atmosphere or venue you have in mind.</p>
             </div>
           </div>
-        )}
 
-        {/* 1. Event Type Selection */}
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <span>Event Category</span>
-            <span className="text-xs font-normal text-slate-400">(Required)</span>
-          </legend>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="space-y-2">
+            <label htmlFor={`${formId}-notes`} className="text-[13px] font-bold text-[#e2e8f0]">Any important details? <span className="font-medium text-[#94a3b8]">Optional</span></label>
+            <textarea id={`${formId}-notes`} rows={3} maxLength={1200} value={specialNotes} onChange={(event) => setSpecialNotes(event.target.value)} className="field-control min-h-[94px] resize-y leading-6" placeholder="Dietary needs, accessibility, a surprise moment, must-haves or things to avoid…" />
+            <div className="flex justify-end text-[10px] text-[#94a3b8]">{specialNotes.length}/1200</div>
+          </div>
+        </div>
+
+        <aside className="flex flex-col border-t border-[#263144] bg-[#0c1424] p-5 sm:p-7 lg:border-l lg:border-t-0">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d59aa5]">A first look</p>
+            <h3 className="font-display mt-2 text-xl font-semibold tracking-[-0.03em] text-[#f1f5f9]">Your event at a glance</h3>
+            <p className="mt-2 text-xs leading-5 text-[#94a3b8]">Your details shape the budget, timeline, and recommendations in the plan.</p>
+          </div>
+
+          <div className="mt-6 divide-y divide-[#293348] rounded-xl border border-[#293348] bg-[#111827] px-4">
+            <div className="flex items-start justify-between gap-3 py-3.5">
+              <span className="text-xs text-[#94a3b8]">Occasion</span>
+              <span className="max-w-[145px] text-right text-xs font-bold text-[#e2e8f0]">{eventType === "Community Event" ? "Community event" : eventType}</span>
+            </div>
+            <div className="flex items-start justify-between gap-3 py-3.5">
+              <span className="text-xs text-[#94a3b8]">Date</span>
+              <span className="text-right text-xs font-semibold text-[#e2e8f0]">{formatEventDate(eventDate)}</span>
+            </div>
+            <div className="flex items-start justify-between gap-3 py-3.5">
+              <span className="text-xs text-[#94a3b8]">Guests</span>
+              <span className="text-xs font-semibold tabular-nums text-[#e2e8f0]">{Math.max(0, guestCount).toLocaleString("en-US")}</span>
+            </div>
+            <div className="py-4">
+              <p className="text-xs text-[#94a3b8]">Working budget</p>
+              <p className="font-display mt-1 text-[1.7rem] font-semibold tracking-[-0.045em] text-[#f1f5f9]">${Math.max(0, totalBudget).toLocaleString("en-US")}</p>
+              <p className="mt-1 text-[11px] text-[#94a3b8]">${budgetPerGuest.toLocaleString("en-US")} per guest, estimated</p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#a0aec0]">Your plan will include</p>
             {[
-              { type: "Wedding" as const, icon: HeartHandshake, label: "Wedding" },
-              { type: "Birthday" as const, icon: Cake, label: "Birthday" },
-              { type: "Community Event" as const, icon: Users, label: "Community" },
-              { type: "Other" as const, icon: PartyPopper, label: "Celebration" },
-            ].map(({ type, icon: Icon, label }) => {
-              const active = eventType === type;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setEventType(type)}
-                  aria-pressed={active}
-                  className={`flex flex-col items-center justify-center p-3.5 rounded-2xl border-2 transition-all ${
-                    active
-                      ? "border-brand-600 bg-brand-50/60 text-brand-900 shadow-sm shadow-brand-500/10 scale-[1.02]"
-                      : "border-slate-200 bg-white hover:border-slate-300 text-slate-600"
-                  }`}
-                >
-                  <Icon className={`w-6 h-6 mb-1.5 ${active ? "text-brand-600" : "text-slate-400"}`} />
-                  <span className="text-xs font-bold">{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        {/* 2. Budget and Guest Count Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Total Budget */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor={`${formId}-budget`}
-              className="text-sm font-semibold text-slate-700 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-                Total Budget (USD)
-              </span>
-              <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                ~${budgetPerGuest}/guest
-              </span>
-            </label>
-            <div className="relative rounded-xl shadow-sm">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold">
-                $
-              </span>
-              <input
-                id={`${formId}-budget`}
-                type="number"
-                min="100"
-                step="50"
-                value={totalBudget}
-                onChange={(e) => setTotalBudget(Number(e.target.value))}
-                required
-                className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 font-semibold"
-                placeholder="10000"
-              />
-            </div>
-            <p className="text-[11px] text-slate-500">
-              The AI baseline will distribute this proportionally across categories.
-            </p>
-          </div>
-
-          {/* Guest Count */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor={`${formId}-guests`}
-              className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"
-            >
-              <Users className="w-4 h-4 text-brand-600" />
-              Guest Count
-            </label>
-            <input
-              id={`${formId}-guests`}
-              type="number"
-              min="1"
-              max="5000"
-              value={guestCount}
-              onChange={(e) => setGuestCount(Number(e.target.value))}
-              required
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 font-semibold"
-              placeholder="75"
-            />
-            <p className="text-[11px] text-slate-500">
-              Calculates catering, seating, venue capacities, and favors.
-            </p>
-          </div>
-        </div>
-
-        {/* 3. Event Date & Days Remaining */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label
-              htmlFor={`${formId}-date`}
-              className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"
-            >
-              <Calendar className="w-4 h-4 text-rose-500" />
-              Target Event Date
-            </label>
-            <input
-              id={`${formId}-date`}
-              type="date"
-              min={todayStr}
-              value={eventDate}
-              onChange={(e) => {
-                setEventDate(e.target.value);
-                if (errorMsg) setErrorMsg(null);
-              }}
-              required
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 font-medium"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-indigo-500" />
-              Calculated Lead Time
-            </label>
-            <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800">
-              <span className="font-bold text-base">
-                {!isMounted
-                  ? "14 Days Until Event"
-                  : isPastDate
-                  ? "⚠️ Selected Date is in the Past"
-                  : daysRemaining > 0
-                  ? `${daysRemaining} Days Until Event`
-                  : "Event is Today!"}
-              </span>
-              <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  isPastDate
-                    ? "bg-red-100 text-red-800 border border-red-300"
-                    : isUrgent
-                    ? "bg-amber-100 text-amber-800 border border-amber-300"
-                    : "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                }`}
-              >
-                {isPastDate
-                  ? "Past Date"
-                  : isUrgent
-                  ? "Urgent Mode"
-                  : "Standard Timeline"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Location & Vibe with Quick Presets */}
-        <div className="space-y-2">
-          <label
-            htmlFor={`${formId}-vibe`}
-            className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"
-          >
-            <GlassWater className="w-4 h-4 text-amber-500" />
-            Location Vibe & Aesthetic
-          </label>
-          <input
-            id={`${formId}-vibe`}
-            type="text"
-            value={locationVibe}
-            onChange={(e) => setLocationVibe(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900"
-            placeholder="e.g. Modern Sunset Rooftop with Lounge Jazz"
-          />
-          {/* Preset Chips */}
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <span className="text-[11px] text-slate-400 self-center">Suggestions:</span>
-            {VIBE_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setLocationVibe(preset)}
-                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition-colors"
-              >
-                {preset}
-              </button>
+              "A budget split you can adjust",
+              "A milestone-by-milestone checklist",
+              "Vendor questions and creative ideas",
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-2.5 text-xs leading-5 text-[#cbd5e1]">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#7ac6a0]" /> {item}
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* 5. Special Notes / Constraints */}
-        <div className="space-y-1.5">
-          <label
-            htmlFor={`${formId}-notes`}
-            className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"
-          >
-            <Info className="w-4 h-4 text-slate-400" />
-            Special Notes & Constraints
-            <span className="text-xs font-normal text-slate-400">(Optional)</span>
-          </label>
-          <textarea
-            id={`${formId}-notes`}
-            rows={2}
-            value={specialNotes}
-            onChange={(e) => setSpecialNotes(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 text-sm"
-            placeholder="e.g. Dietary allergies, surprise toast for grandma, acoustic volume limit by 10 PM, DIY flowers..."
-          />
-        </div>
-
-        {/* Submit Button */}
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-brand-600 via-rose-600 to-amber-600 hover:from-brand-700 hover:via-rose-700 hover:to-amber-700 text-white font-bold text-base sm:text-lg shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <svg
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span>Orchestrating Plan with AI...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 text-amber-200" />
-                <span>Generate Editable Event Plan</span>
-              </>
-            )}
-          </button>
-        </div>
+          <div className="mt-7 border-t border-[#293348] pt-5 lg:mt-auto lg:pt-8">
+            <button type="submit" disabled={isLoading} className="primary-button w-full">
+              {isLoading ? (
+                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Building your plan…</>
+              ) : (
+                <>Build my event plan <ArrowRight className="h-4 w-4" /></>
+              )}
+            </button>
+            <p className="mt-3 text-center text-[10px] leading-4 text-[#94a3b8]">You can fine-tune your budget and checklist after it’s created.</p>
+          </div>
+        </aside>
       </form>
     </div>
   );

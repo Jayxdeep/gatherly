@@ -10,22 +10,19 @@ import { formatCurrency } from "@/lib/utils";
 import { downloadCalendarFile } from "@/lib/export/calendarExport";
 import { getShareableUrl } from "@/lib/export/shareUrl";
 import {
-  Calendar,
-  DollarSign,
-  Users,
-  Clock,
-  Sparkles,
-  Download,
-  Printer,
-  Copy,
+  CalendarDays,
   Check,
-  RotateCcw,
-  AlertTriangle,
-  PieChart,
-  ListTodo,
-  Briefcase,
+  ClipboardList,
+  Copy,
+  Download,
   Lightbulb,
+  ListChecks,
+  Printer,
+  RotateCcw,
   Share2,
+  Users,
+  Wallet,
+  AlertTriangle,
 } from "lucide-react";
 
 interface PlanDashboardProps {
@@ -35,289 +32,203 @@ interface PlanDashboardProps {
   onReset: () => void;
 }
 
+type PlanTab = "budget" | "timeline" | "vendors" | "ideas";
+
+function formatEventDate(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  if (!year || !month || !day) return dateString;
+  return new Intl.DateTimeFormat("en", {
+    weekday: "short",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
+}
+
 export function PlanDashboard({ input, plan, source, onReset }: PlanDashboardProps) {
-  const [activeTab, setActiveTab] = useState<"budget" | "timeline" | "vendors" | "ideas">("budget");
+  const [activeTab, setActiveTab] = useState<PlanTab>("budget");
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const budgetPerGuest = input.guestCount > 0 ? Math.round(input.totalBudget / input.guestCount) : 0;
 
-  const budgetPerGuest = Math.round(input.totalBudget / input.guestCount);
+  const copyToClipboard = async (value: string) => {
+    if (!navigator.clipboard?.writeText) return false;
+    await navigator.clipboard.writeText(value);
+    return true;
+  };
 
-  // Copy summary to clipboard
-  const handleCopySummary = () => {
+  const handleCopySummary = async () => {
     const text = `
 Gatherly Event Plan: ${input.eventType}
 ----------------------------------------
-Vibe: ${input.locationVibe}
+Style: ${input.locationVibe}
 Date: ${input.eventDate} (${input.daysRemaining} days left)
 Budget: ${formatCurrency(input.totalBudget)} (${input.guestCount} guests, ~${formatCurrency(budgetPerGuest)}/guest)
-Mode: ${plan.isUrgentMode ? "URGENT MODE (<7 Days)" : "Standard Timeline"}
+Planning pace: ${plan.isUrgentMode ? "Short timeline" : "Standard timeline"}
 
-AI Strategy:
+Event strategy:
 ${plan.eventSummary}
 
-Budget Categories:
-${plan.budgetAllocation.map((b) => `- ${b.category}: ${b.percentage}% (${formatCurrency(b.estimatedCost)}) [${b.priority}]`).join("\n")}
+Budget categories:
+${plan.budgetAllocation.map((item) => `- ${item.category}: ${item.percentage}% (${formatCurrency(item.estimatedCost)}) [${item.priority}]`).join("\n")}
 
-Key Milestone Phases:
-${plan.timelineMilestones.map((m) => `${m.phase}:\n${m.tasks.map((t) => `  [ ] ${t.taskName}`).join("\n")}`).join("\n")}
+Planning milestones:
+${plan.timelineMilestones.map((phase) => `${phase.phase}:\n${phase.tasks.map((task) => `  [ ] ${task.taskName}`).join("\n")}`).join("\n")}
     `.trim();
 
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Copy shareable URL with encoded plan payload
-  const handleShareLink = () => {
-    const shareUrl = getShareableUrl({ input, plan, source });
-    if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl);
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 2500);
+    try {
+      const success = await copyToClipboard(text);
+      if (success) {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (error) {
+      console.error("Could not copy the plan summary:", error);
     }
   };
 
-  // Export RFC 5545 iCalendar file
-  const handleExportCalendar = () => {
-    downloadCalendarFile(input, plan);
+  const handleShareLink = async () => {
+    const shareUrl = getShareableUrl({ input, plan, source });
+    if (!shareUrl) return;
+    try {
+      const success = await copyToClipboard(shareUrl);
+      if (success) {
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 2500);
+      }
+    } catch (error) {
+      console.error("Could not copy the share link:", error);
+    }
   };
 
-  // Export JSON file
+  const handleExportCalendar = () => downloadCalendarFile(input, plan);
+
   const handleExportJSON = () => {
     const payload = {
       meta: {
-        generator: "Gatherly AI Orchestration Engine",
+        generator: "Gatherly",
         generatedAt: new Date().toISOString(),
         source,
       },
       input,
       plan,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `gatherly-plan-${input.eventType.toLowerCase()}-${input.eventDate}.json`;
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `gatherly-plan-${input.eventType.toLowerCase().replace(/\s+/g, "-")}-${input.eventDate}.json`;
+    anchor.click();
     URL.revokeObjectURL(url);
   };
 
+  const tabs = [
+    { id: "budget" as const, label: "Budget", icon: Wallet },
+    { id: "timeline" as const, label: "Timeline", icon: ListChecks },
+    { id: "vendors" as const, label: "Vendors", icon: ClipboardList },
+    { id: "ideas" as const, label: "Ideas", icon: Lightbulb },
+  ];
+
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
-      {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
-        <button
-          type="button"
-          onClick={onReset}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm transition-colors"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-          Edit Parameters / Plan New Event
+    <div className="mx-auto w-full max-w-[1240px] space-y-6">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between no-print">
+        <button type="button" onClick={onReset} className="inline-flex w-fit items-center gap-2 rounded-lg px-1 py-2 text-sm font-semibold text-[#a0aec0] transition-colors hover:text-[#ef8299]">
+          <RotateCcw className="h-4 w-4" /> Edit details or plan another event
         </button>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Collaborative Share Link Button */}
-          <button
-            type="button"
-            onClick={handleShareLink}
-            className="inline-flex items-center gap-1.5 text-xs font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 hover:text-brand-900 px-3.5 py-2 rounded-xl border border-brand-200 shadow-sm transition-colors"
-            title="Generate and copy an instant shareable URL containing full plan data"
-          >
-            {shareCopied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5 text-brand-600" />
-                <span>Share Plan Link</span>
-              </>
-            )}
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={handleShareLink} className="secondary-button">
+            {shareCopied ? <Check className="h-3.5 w-3.5 text-[#7ac6a0]" /> : <Share2 className="h-3.5 w-3.5" />}
+            {shareCopied ? "Link copied" : "Share plan"}
           </button>
-
-          {/* Export Calendar (.ics) Button */}
-          <button
-            type="button"
-            onClick={handleExportCalendar}
-            className="inline-flex items-center gap-1.5 text-xs font-bold bg-white text-slate-700 hover:text-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm transition-colors"
-            title="Download Apple/Google Calendar .ics milestone schedule"
-          >
-            <Calendar className="w-3.5 h-3.5 text-rose-500" />
-            <span>Calendar (.ics)</span>
+          <button type="button" onClick={handleExportCalendar} className="secondary-button"><CalendarDays className="h-3.5 w-3.5" /> Calendar</button>
+          <button type="button" onClick={handleCopySummary} className="secondary-button">
+            {copied ? <Check className="h-3.5 w-3.5 text-[#7ac6a0]" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Summary copied" : "Copy summary"}
           </button>
-
-          <button
-            type="button"
-            onClick={handleCopySummary}
-            className="inline-flex items-center gap-1.5 text-xs font-bold bg-white text-slate-700 hover:text-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm transition-colors"
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-slate-500" />
-                <span>Copy Summary</span>
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={handleExportJSON}
-            className="inline-flex items-center gap-1.5 text-xs font-bold bg-white text-slate-700 hover:text-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            Export JSON
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 px-3.5 py-2 rounded-xl shadow-sm transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-300" />
-            Print Plan
-          </button>
+          <button type="button" onClick={handleExportJSON} className="secondary-button"><Download className="h-3.5 w-3.5" /> Export data</button>
+          <button type="button" onClick={() => window.print()} className="secondary-button"><Printer className="h-3.5 w-3.5" /> Print</button>
         </div>
       </div>
 
-      {/* Hero Overview Header */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-lg shadow-slate-100 p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="text-xs font-bold text-brand-700 bg-brand-50 border border-brand-200 px-3 py-1 rounded-full uppercase tracking-wider">
-                {input.eventType} Plan
-              </span>
-              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                {input.locationVibe}
-              </span>
-              <span className="text-xs font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                Source: {source}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Event Orchestration Master Blueprint
-            </h1>
-          </div>
-
-          {/* Quick Metrics Badges */}
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl text-right">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                Target Date
-              </span>
-              <span className="text-xs font-bold text-slate-800">
-                {input.eventDate}
-              </span>
-            </div>
-            <div className="bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl text-right">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                Guest Capacity
-              </span>
-              <span className="text-xs font-bold text-slate-800">
-                {input.guestCount} Guests
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Urgent Mode Warning Banner */}
-        {plan.isUrgentMode && (
-          <div
-            role="status"
-            className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-400/80 text-amber-950 flex items-start gap-3 shadow-sm"
-          >
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-extrabold text-sm flex items-center gap-2">
-                <span>URGENT MODE ENFORCED ({input.daysRemaining} Days Remaining)</span>
-                <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-black">
-                  Rule Triggered
-                </span>
+      <section className="clean-card overflow-hidden">
+        <div className="p-5 sm:p-7 lg:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-[760px]">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-[#2b1c2b] px-2.5 py-1 text-[11px] font-bold text-[#ffa1b3]">{input.eventType}</span>
+                {plan.isUrgentMode && <span className="inline-flex items-center gap-1.5 rounded-md bg-[#2c2416] px-2.5 py-1 text-[11px] font-semibold text-[#e8c878]"><AlertTriangle className="h-3 w-3" /> Short timeline</span>}
               </div>
-              <p className="text-xs text-amber-900/90 mt-1 leading-relaxed">
-                Because this event is in under 7 days, long-lead vendor procurement has been truncated. The baseline allocates emergency contingency and prioritizes turnkey lock-ins.
-              </p>
+              <h1 className="font-display text-3xl font-semibold leading-tight tracking-[-0.045em] text-[#f8fafc] sm:text-4xl">Your event plan</h1>
+              <p className="mt-2 text-sm leading-6 text-[#a0aec0]">{input.locationVibe}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:min-w-[390px]">
+              <div className="rounded-xl border border-[#293348] bg-[#121b2b] p-4">
+                <CalendarDays className="mb-3 h-4 w-4 text-[#ef8299]" />
+                <p className="text-[11px] font-semibold text-[#94a3b8]">Event date</p>
+                <p className="mt-1 text-sm font-bold leading-5 text-[#e2e8f0]">{formatEventDate(input.eventDate)}</p>
+              </div>
+              <div className="rounded-xl border border-[#293348] bg-[#121b2b] p-4">
+                <Users className="mb-3 h-4 w-4 text-[#ef8299]" />
+                <p className="text-[11px] font-semibold text-[#94a3b8]">Guests</p>
+                <p className="mt-1 text-sm font-bold leading-5 text-[#e2e8f0]">{input.guestCount.toLocaleString("en-US")} people</p>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* AI Strategy Summary Card */}
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-rose-50/70 via-pink-50/40 to-amber-50/50 border border-rose-100 flex items-start gap-3.5">
-          <div className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-brand-500/20">
-            <Sparkles className="w-4 h-4 text-amber-200" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-brand-800 uppercase tracking-wider block mb-1">
-              AI Strategy Directive
-            </span>
-            <p className="text-sm font-medium text-slate-800 leading-relaxed">
-              {plan.eventSummary}
-            </p>
+          {plan.isUrgentMode && (
+            <div role="status" className="mt-6 flex items-start gap-3 rounded-xl border border-[#66512d] bg-[#2c2416] p-4 text-sm text-[#e8c878]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div><p className="font-semibold">A shorter runway needs a tighter plan.</p><p className="mt-1 leading-5 text-[#d6bd83]">Prioritize availability checks and decisions that unblock the rest of your event. Review dates with vendors before committing.</p></div>
+            </div>
+          )}
+
+          <div className="mt-6 rounded-xl border border-[#293348] bg-[#221827] p-4 sm:p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#e0a1ad]">Planning direction</p>
+            <p className="mt-2 text-sm leading-6 text-[#cbd5e1] sm:text-[15px] sm:leading-7">{plan.eventSummary}</p>
           </div>
         </div>
-      </div>
 
-      {/* Interactive Tabs Navigation */}
-      <div className="flex border-b border-slate-200 bg-white rounded-2xl p-1.5 shadow-sm no-print gap-1">
-        {[
-          { id: "budget" as const, label: "Budget & Sliders", icon: PieChart },
-          { id: "timeline" as const, label: "Timeline Milestones", icon: ListTodo },
-          { id: "vendors" as const, label: "Vendor Playbook", icon: Briefcase },
-          { id: "ideas" as const, label: "Personalized Ideas", icon: Lightbulb },
-        ].map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActiveTab(id)}
-              className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                active
-                  ? "bg-brand-600 text-white shadow-md shadow-brand-600/20"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{label}</span>
-            </button>
-          );
-        })}
-      </div>
+        <div className="grid grid-cols-1 divide-y divide-[#263144] border-t border-[#263144] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="flex items-center gap-4 px-5 py-4 sm:px-7">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2b1c2b] text-[#ef8299]"><Wallet className="h-[18px] w-[18px]" /></span>
+            <div><p className="text-[11px] font-semibold text-[#94a3b8]">Working budget</p><p className="mt-0.5 text-lg font-bold tracking-tight text-[#f1f5f9]">{formatCurrency(input.totalBudget)}</p></div>
+          </div>
+          <div className="flex items-center gap-4 px-5 py-4 sm:px-7">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#202538] text-[#c4b09a]"><Users className="h-[18px] w-[18px]" /></span>
+            <div><p className="text-[11px] font-semibold text-[#94a3b8]">Budget per guest</p><p className="mt-0.5 text-lg font-bold tracking-tight text-[#f1f5f9]">{formatCurrency(budgetPerGuest)}</p></div>
+          </div>
+          <div className="flex items-center gap-4 px-5 py-4 sm:px-7">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#142a23] text-[#7ac6a0]"><ClipboardList className="h-[18px] w-[18px]" /></span>
+            <div><p className="text-[11px] font-semibold text-[#94a3b8]">Planning phases</p><p className="mt-0.5 text-lg font-bold tracking-tight text-[#f1f5f9]">{plan.timelineMilestones.length} phases</p></div>
+          </div>
+        </div>
+      </section>
 
-      {/* Tab Panels */}
-      <div className="transition-all">
-        {activeTab === "budget" && (
-          <BudgetManager
-            initialItems={plan.budgetAllocation}
-            initialBudget={input.totalBudget}
-          />
-        )}
+      <section>
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div><h2 className="font-display text-2xl font-semibold tracking-[-0.035em] text-[#f1f5f9]">Make the plan yours</h2><p className="mt-1 text-sm text-[#94a3b8]">Adjust your budget, work through tasks, and keep vendor conversations organized.</p></div>
+          <p className="mt-1 text-[10px] text-[#94a3b8]">Plan source: {source}</p>
+        </div>
 
-        {activeTab === "timeline" && (
-          <TimelineMilestones
-            initialMilestones={plan.timelineMilestones}
-            onExportCalendar={handleExportCalendar}
-          />
-        )}
+        <div className="no-print mb-5 grid grid-cols-2 gap-2 rounded-xl border border-[#293348] bg-[#111827] p-1.5 sm:grid-cols-4">
+          {tabs.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button key={id} type="button" onClick={() => setActiveTab(id)} aria-pressed={active} className={`flex min-h-[45px] items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${active ? "border border-[#3d3040] bg-[#202538] text-[#ffa1b3] shadow-sm" : "border border-transparent text-[#a0aec0] hover:bg-[#1c2435] hover:text-[#e2e8f0]"}`}>
+                <Icon className="h-4 w-4 shrink-0" /> <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        {activeTab === "vendors" && (
-          <VendorChecklist vendors={plan.vendorChecklist} />
-        )}
-
-        {activeTab === "ideas" && (
-          <PersonalizedIdeas
-            ideas={plan.personalizedIdeas}
-            vibe={input.locationVibe}
-            isUrgentMode={plan.isUrgentMode}
-          />
-        )}
-      </div>
+        <div>
+          {/* Keep tab panels mounted so checklist and vendor status edits survive tab changes. */}
+          <div hidden={activeTab !== "budget"}><BudgetManager initialItems={plan.budgetAllocation} initialBudget={input.totalBudget} /></div>
+          <div hidden={activeTab !== "timeline"}><TimelineMilestones initialMilestones={plan.timelineMilestones} /></div>
+          <div hidden={activeTab !== "vendors"}><VendorChecklist vendors={plan.vendorChecklist} /></div>
+          <div hidden={activeTab !== "ideas"}><PersonalizedIdeas ideas={plan.personalizedIdeas} vibe={input.locationVibe} isUrgentMode={plan.isUrgentMode} /></div>
+        </div>
+      </section>
     </div>
   );
 }
