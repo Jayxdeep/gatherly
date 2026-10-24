@@ -12,11 +12,11 @@ export function generateDeterministicPlan(input: EventInput): EventPlan {
 
   let summary = "";
   if (isUrgent) {
-    summary = `URGENT 7-DAY SPRINT: Plan optimized for rapid execution with only ${input.daysRemaining} days left. Skipped long-lead custom items, prioritized pre-equipped venues with in-house catering, and reserved an emergency contingency cushion.`;
+    summary = `With ${input.daysRemaining} days left, this plan focuses on decisions that can be made quickly: a venue with in-house catering, ready-to-go rentals, and a contingency for rush fees.`;
   } else if (isTightBudget) {
-    summary = `VALUE-OPTIMIZED STRATEGY: Tailored for high guest density ($${budgetPerGuest.toFixed(0)}/guest). Maximized core hospitality (food & venue) with creative DIY decor, digital invitations, and community-driven entertainment.`;
+    summary = `At about $${budgetPerGuest.toFixed(0)} per guest, most of the budget goes to food and venue. The rest favors simple decor, digital invitations, and entertainment that does not need a large production.`;
   } else {
-    summary = `BALANCED BESPOKE EXECUTION: Standard structured milestone timeline with curated vendor allocations reflecting a "${input.locationVibe}" aesthetic for ${input.guestCount} guests.`;
+    summary = `A balanced plan for ${input.guestCount} guests, built around a ${input.locationVibe} setting. The budget covers the essentials first, with room for photography, flowers, and a small contingency.`;
   }
 
   // Budget allocations based on mode and event type
