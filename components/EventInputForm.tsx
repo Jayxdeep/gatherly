@@ -170,16 +170,19 @@ export function EventInputForm({ onSubmit, isLoading }: EventInputFormProps) {
       <div className="border-b border-line px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-serif text-2xl leading-tight text-ink">
-              Event details
+            <p className="text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+              Start here
+            </p>
+            <h2 className="mt-2 font-serif text-2xl leading-tight text-ink">
+              Tell us about the day
             </h2>
             <p className="mt-1.5 max-w-md text-sm leading-6 text-ink-muted">
-              A few essentials are enough to start. You can adjust every part of
-              the plan afterwards.
+              A few details are enough to begin. Every number, task, and note
+              can be changed afterwards.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-ink-faint">Examples</span>
+            <span className="text-xs text-ink-faint">Try an example</span>
             <Button size="sm" onClick={() => loadExample("urgent")}>
               <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
               4-day birthday
@@ -277,7 +280,7 @@ export function EventInputForm({ onSubmit, isLoading }: EventInputFormProps) {
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-ink-faint"
                 >
-                  $
+                  {"\u20B9"}
                 </span>
                 <Input
                   id={`${formId}-budget`}
@@ -380,8 +383,10 @@ export function EventInputForm({ onSubmit, isLoading }: EventInputFormProps) {
           </Field>
         </div>
 
-        <aside className="border-t border-line bg-surface-muted px-5 py-6 sm:px-6 lg:border-l lg:border-t-0">
-          <p className="text-xs font-medium text-ink-muted">Summary</p>
+        <aside className="border-t border-line bg-surface-muted px-5 py-6 sm:px-6 lg:sticky lg:top-20 lg:self-start lg:border-l lg:border-t-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+            Your plan so far
+          </p>
 
           <dl className="mt-3 divide-y divide-line rounded-lg border border-line bg-surface px-4">
             <div className="flex items-start justify-between gap-4 py-3">
@@ -443,6 +448,10 @@ export function EventInputForm({ onSubmit, isLoading }: EventInputFormProps) {
           </Button>
           <p className="mt-3 text-center text-xs leading-5 text-ink-faint">
             You can change the budget, tasks, and vendor notes afterwards.
+          </p>
+          <p className="mt-2 text-center text-[11px] leading-5 text-ink-faint">
+            No account needed. Your plan stays in this browser unless you
+            choose to share it.
           </p>
         </aside>
       </form>
