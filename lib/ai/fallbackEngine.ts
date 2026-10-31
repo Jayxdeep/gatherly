@@ -14,7 +14,7 @@ export function generateDeterministicPlan(input: EventInput): EventPlan {
   if (isUrgent) {
     summary = `With ${input.daysRemaining} days left, this plan focuses on decisions that can be made quickly: a venue with in-house catering, ready-to-go rentals, and a contingency for rush fees.`;
   } else if (isTightBudget) {
-    summary = `At about $${budgetPerGuest.toFixed(0)} per guest, most of the budget goes to food and venue. The rest favors simple decor, digital invitations, and entertainment that does not need a large production.`;
+    summary = `At about ₹${budgetPerGuest.toFixed(0)} per guest, most of the budget goes to food and venue. The rest favors simple decor, digital invitations, and entertainment that does not need a large production.`;
   } else {
     summary = `A balanced plan for ${input.guestCount} guests, built around a ${input.locationVibe} setting. The budget covers the essentials first, with room for photography, flowers, and a small contingency.`;
   }
@@ -260,7 +260,7 @@ export function generateDeterministicPlan(input: EventInput): EventPlan {
         "Are tables, chairs, and standard linens included in the fee?",
         "Is there an on-site facility manager during the entire duration?",
       ],
-      estimatedBudgetRange: `$${Math.round(input.totalBudget * 0.30).toLocaleString()} - $${Math.round(input.totalBudget * 0.40).toLocaleString()}`,
+      estimatedBudgetRange: `₹${Math.round(input.totalBudget * 0.30).toLocaleString("en-IN")} - ₹${Math.round(input.totalBudget * 0.40).toLocaleString("en-IN")}`,
     },
     {
       vendorType: "Catering & Beverage",
@@ -269,7 +269,7 @@ export function generateDeterministicPlan(input: EventInput): EventPlan {
         "What is the server-to-guest ratio for the meal service?",
         "Is cleanup and trash disposal included in the quote?",
       ],
-      estimatedBudgetRange: `$${Math.round(input.totalBudget * 0.25).toLocaleString()} - $${Math.round(input.totalBudget * 0.35).toLocaleString()}`,
+      estimatedBudgetRange: `₹${Math.round(input.totalBudget * 0.25).toLocaleString("en-IN")} - ₹${Math.round(input.totalBudget * 0.35).toLocaleString("en-IN")}`,
     },
     {
       vendorType: "Photographer / Media",
@@ -278,7 +278,7 @@ export function generateDeterministicPlan(input: EventInput): EventPlan {
         "What is the turnaround timeline for the digital gallery?",
         "Do you carry full commercial liability insurance?",
       ],
-      estimatedBudgetRange: `$${Math.round(input.totalBudget * 0.10).toLocaleString()} - $${Math.round(input.totalBudget * 0.18).toLocaleString()}`,
+      estimatedBudgetRange: `₹${Math.round(input.totalBudget * 0.10).toLocaleString("en-IN")} - ₹${Math.round(input.totalBudget * 0.18).toLocaleString("en-IN")}`,
     },
     {
       vendorType: "Entertainment & Sound",
@@ -287,7 +287,7 @@ export function generateDeterministicPlan(input: EventInput): EventPlan {
         "Can we provide a 'must-play' and 'do-not-play' track list?",
         "What backup equipment do you bring in case of technical issues?",
       ],
-      estimatedBudgetRange: `$${Math.round(input.totalBudget * 0.08).toLocaleString()} - $${Math.round(input.totalBudget * 0.15).toLocaleString()}`,
+      estimatedBudgetRange: `₹${Math.round(input.totalBudget * 0.08).toLocaleString("en-IN")} - ₹${Math.round(input.totalBudget * 0.15).toLocaleString("en-IN")}`,
     },
   ];
 

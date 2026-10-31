@@ -11,13 +11,13 @@ CRITICAL LOGIC RULES:
 `;
 
 export function generateEventPrompt(input: EventInput): string {
-  const budgetPerGuest = (input.totalBudget / input.guestCount).toFixed(2);
+  const budgetPerGuest = input.totalBudget / input.guestCount;
   const isUrgent = input.daysRemaining < 7;
 
   return `
 Create an optimal, production-ready event execution plan for the following parameters:
 - Event Type: ${input.eventType}
-- Total Budget: $${input.totalBudget.toLocaleString()} (approx $${budgetPerGuest} per guest)
+- Total Budget: ₹${input.totalBudget.toLocaleString("en-IN")} (approx ₹${budgetPerGuest.toLocaleString("en-IN")} per guest)
 - Guest Count: ${input.guestCount} guests
 - Event Date: ${input.eventDate}
 - Days Remaining: ${input.daysRemaining} days ${isUrgent ? "(CRITICAL: URGENT MODE ACTIVE - Less than 7 days left!)" : ""}
@@ -49,7 +49,7 @@ Ensure the JSON matches this structure exactly:
     {
       "vendorType": "Caterer",
       "keyQuestions": ["Can you accommodate dietary restrictions?", "What is the staffing ratio?"],
-      "estimatedBudgetRange": "$1,000 - $1,500"
+      "estimatedBudgetRange": "₹1,000 - ₹1,500"
     }
   ],
   "personalizedIdeas": [
