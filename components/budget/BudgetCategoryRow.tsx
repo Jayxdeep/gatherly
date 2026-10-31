@@ -92,7 +92,7 @@ export function BudgetCategoryRow({
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-ink-faint"
           >
-            $
+            {"\u20B9"}
           </span>
           <label htmlFor={`budget-cost-${item.id}`} className="sr-only">
             Amount for {item.category}

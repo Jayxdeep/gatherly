@@ -42,7 +42,7 @@ export function BudgetSummary({
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-ink-faint"
           >
-            $
+            {"\u20B9"}
           </span>
           <CurrencyInput
             id="plan-total-budget"
@@ -71,14 +71,14 @@ export function BudgetSummary({
               ? "Every dollar is assigned"
               : "Not yet assigned to a category"
         }
-        tone={metrics.isOverBudget ? "danger" : "positive"}
+        tone={metrics.isOverBudget ? "danger" : "default"}
       />
 
       <Stat
         label="Allocation"
         value={`${metrics.totalPercentage}%`}
         hint={allocationHint}
-        tone={metrics.isBalanced ? "positive" : "warning"}
+        tone={metrics.isBalanced ? "default" : "warning"}
       />
     </div>
   );
