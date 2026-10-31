@@ -1,10 +1,10 @@
-# Gatherly 🎈
+# Gatherly 
 ### AI-Powered Event & Celebration Orchestrator
 **Hack2Skill Google PromptWars Virtual — Challenge 5: Celebration & Event Planner**
 
 ---
 
-## 🌟 Executive Summary
+## Executive Summary
 **Gatherly** is an autonomous event planning engine designed to eliminate planning chaos for weddings, milestone birthdays, and community festivals. Built on Next.js App Router and TypeScript, Gatherly pairs Google's Gemini models with a dedicated **Client-Side Recalculation Engine** (`useBudgetCalculator`).
 
 Instead of rigid, static AI responses that force wasteful re-prompts for every adjustment, Gatherly implements an **Editable Baseline Strategy**:
@@ -13,7 +13,7 @@ Instead of rigid, static AI responses that force wasteful re-prompts for every a
 
 ---
 
-## 🚀 Key Highlights & Competition Constraint Compliance
+##  Key Highlights & Competition Constraint Compliance
 
 | Constraint / Target | Implementation | Verification |
 | :--- | :--- | :--- |
@@ -26,7 +26,7 @@ Instead of rigid, static AI responses that force wasteful re-prompts for every a
 
 ---
 
-## 🏗️ Architecture Directory Structure
+##  Architecture Directory Structure
 
 ```text
 gatherly/
@@ -40,22 +40,26 @@ gatherly/
 │   ├── schemas/
 │   │   └── event.ts             # Strict Zod Schemas for System IO & LLM Output
 │   ├── engine/
-│   │   └── useBudgetCalculator.ts # Local In-Memory Budget Recalculation Hook
+│   │   └── useBudgetCalculator.ts # Local In-Memory Budget Recalculator with Zero/NaN guards
+│   ├── export/
+│   │   ├── calendarExport.ts    # RFC 5545 iCalendar (.ics) schedule generator
+│   │   └── shareUrl.ts          # URL-safe Base64 collaborative shareable plan encoder
 │   ├── ai/
 │   │   ├── prompts.ts           # System Instructions & Structured Prompt Generators
 │   │   └── fallbackEngine.ts    # Deterministic Baseline Generator for offline/test resilience
 │   └── utils.ts                 # Formatting & class merging utilities
 ├── components/
-│   ├── EventInputForm.tsx       # Accessible Form with Date Picker & Scenario Presets
-│   ├── PlanDashboard.tsx        # Multi-tab Interactive Dashboard & Export Hub
+│   ├── EventInputForm.tsx       # Hydration-guarded Form with Date Bounds & Scenario Presets
+│   ├── PlanDashboard.tsx        # Multi-tab Dashboard, Calendar (.ics), Share Link & Export Hub
 │   ├── BudgetManager.tsx        # Dynamic Sliders, Breakdown Bar & Category Editor
-│   ├── TimelineMilestones.tsx   # Phase-by-phase interactive task checklist
+│   ├── TimelineMilestones.tsx   # Phase-by-phase task checklist with Calendar Sync
 │   ├── VendorChecklist.tsx      # Vendor vetting questions & price range tiers
 │   └── PersonalizedIdeas.tsx    # Curated aesthetic inspiration & DIY hacks
 ├── tests/
 │   ├── schemas.test.ts          # Zod validation & LLM response parsing tests
-│   ├── budgetEngine.test.ts     # Budget math, normalization, & zero-budget tests
-│   └── fallbackEngine.test.ts   # Urgent mode (< 7 days) & budget scaling tests
+│   ├── budgetEngine.test.ts     # Budget math, normalization, & zero/NaN edge case tests
+│   ├── fallbackEngine.test.ts   # Urgent mode (< 7 days) & budget scaling tests
+│   └── export.test.ts           # RFC 5545 .ics generation & Base64 sharing tests
 ├── .gitignore                   # Critical repository size protection
 ├── README.md                    # Project Brief & Blueprint Explanation
 └── package.json
@@ -63,7 +67,7 @@ gatherly/
 
 ---
 
-## ⚡ Dynamic Urgency & Value Rules
+## Dynamic Urgency & Value Rules
 
 ### 1. Urgent Mode (`daysRemaining < 7`)
 - **Automatic Trigger:** The moment an event date is within 7 days (or using the `⚡ Urgent (<7d)` preset), Gatherly sets `isUrgentMode: true`.
@@ -74,11 +78,15 @@ gatherly/
 - Prioritizes core guest hospitality (food and space).
 - Automatically generates creative DIY alternatives in `personalizedIdeas` (e.g., collaborative Spotify queues, family-style grazing boards, fairy light ambiance).
 
+### 3. Collaborative Sharing & Calendar Sync
+- **Frictionless Sharing:** Generates a zero-database, URL-safe Base64 hash `#share=...` containing validated plan state that can be shared with clients, co-planners, or judges.
+- **Calendar Integration (.ics):** Generates RFC 5545 `.ics` event schedules that import directly into Apple Calendar, Google Calendar, or Outlook with scheduled milestone phase reminders.
+
 ---
 
-## 🧪 Testing Suite (Vitest)
+## Testing Suite (Vitest)
 
-All 16 unit tests cover Zod schemas, budget recalculation math, zero-budget edge cases, and dynamic urgency logic:
+All 20 unit tests cover Zod schemas, budget recalculation math, zero/NaN safeguards, dynamic urgency logic, calendar serialization, and URL hash sharing:
 
 ```bash
 npm test
@@ -86,17 +94,18 @@ npm test
 
 Sample output:
 ```text
- ✓ tests/budgetEngine.test.ts (5 tests)
+ ✓ tests/budgetEngine.test.ts (6 tests)
  ✓ tests/schemas.test.ts (7 tests)
  ✓ tests/fallbackEngine.test.ts (4 tests)
+ ✓ tests/export.test.ts (3 tests)
 
- Test Files  3 passed (3)
-      Tests  16 passed (16)
+ Test Files  4 passed (4)
+      Tests  20 passed (20)
 ```
 
 ---
 
-## 🛠️ Getting Started Locally
+## Getting Started Locally
 
 ### Prerequisites
 - Node.js 18+ or 20+
@@ -130,8 +139,8 @@ npm start
 
 ---
 
-## ♿ Accessibility & UX Standards
+## Accessibility & UX Standards
 - **Semantic HTML5:** `<header>`, `<main>`, `<section>`, `<fieldset>`, `<legend>`.
 - **Keyboard Navigation:** Full tab order across sliders, task checkboxes, and tabs.
 - **High Contrast:** Compliant with WCAG AA standards.
-- **Export Capabilities:** One-click JSON export, formatted summary clipboard copying, and print-optimized PDF styling.
+- **Export Capabilities:** One-click JSON export, RFC 5545 `.ics` calendar download, Base64 collaborative share links, formatted summary clipboard copying, and print-optimized PDF styling.
